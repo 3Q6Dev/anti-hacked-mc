@@ -1,0 +1,28 @@
+<html>
+	<head>
+
+	</head>
+
+	<body>
+		<script>
+document.write(`
+
+<h1>Anti-Hacked-MC Docs</h1>
+<p>GET ${window.location.hostname}/api/accountInfo?uuid=UUIDHERE</p>
+<p>Example URL: ${window.location.hostname}/api/accountInfo?uuid=069a79f444e94726a5befca90e38aaf5</p>
+<p>Example Non-Hacked-Account  Response: {"error": false, "hackedAccount": false}</p>
+<p>Example Hacked-Account  Response: {"error": false, "hackedAccount": true, "accountProvider": "TheAltening"}</p>
+
+</br>
+</br>
+</br>
+
+<p>GET ${window.location.hostname}/api/addAccount?token=TOKENHERE</p>
+<p>Example URL: ${window.location.hostname}/api/addAccount?token=4xtgs-tkp2g@alt.com</p>
+<p>Example Successful Response: {"error": false, "msg": "Success! Thanks for contributing!"}</p>
+<p>Example Error Response: {"error": true, "msg": "Thanks, but this account is already in our list."}</p>
+
+`);
+		</script>
+	</body>
+</html>
