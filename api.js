@@ -30,7 +30,7 @@ app.get("/api/accountInfo", (req, res) => {
 	}
   })
 
-  app.get("/api/addAccount", async (req, res) => {
+app.get("/api/addAccount", async (req, res) => {
 	if(typeof req.query.token == 'undefined') {
 		res.send(`{"error": true, "msg": "No token provided, Example URL: ` + req.get('host') + req.originalUrl + `?token=` + exampleToken + `"}`)
 	} else {
@@ -80,6 +80,15 @@ app.get("/api/accountInfo", (req, res) => {
 		}
 		
 	}
+})
+
+app.get("/api/accountCount", async (req, res) => {
+	let sqlResponse = db.prepare(`
+	
+	SELECT Count(*) FROM hacked_account_list
+
+	`).get();
+	res.send(`{"count": ${sqlResponse['Count(*)']}}`);
 })
 
 var indexPage = fs.readFileSync('./pages/index.html', 'utf8');
