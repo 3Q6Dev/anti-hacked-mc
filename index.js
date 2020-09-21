@@ -1,0 +1,1 @@
+var antiHackedMCAPI = require('./api.js');
