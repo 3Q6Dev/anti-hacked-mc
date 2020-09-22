@@ -1,6 +1,7 @@
 const db = require('better-sqlite3')('./hackedAccountList.db');
 const express = require('express')
 const fs = require('fs');
+const { resolveSoa } = require('dns');
 const app = express()
 
 let exampleUUID = "069a79f444e94726a5befca90e38aaf5" // Notch
@@ -91,16 +92,17 @@ app.get("/api/accountCount", async (req, res) => {
 	res.send(`{"count": ${sqlResponse['Count(*)']}}`);
 })
 
-var indexPage = fs.readFileSync('./pages/index.html', 'utf8');
-var docsPage = fs.readFileSync('./pages/docs.html', 'utf8');
-
 app.get("/", async (req, res) => {
-	res.send(indexPage);
+	res.send(fs.readFileSync('./pages/index.html', 'utf8'));
 })
 
 app.get("/docs", async (req, res) => {
-	res.send(docsPage);
+	res.send(fs.readFileSync('./pages/docs.html', 'utf8'));
 })
+
+app.use(function(req, res) {
+	res.status(404).send(fs.readFileSync('./pages/not_found.html', 'utf8'));
+});
 
 async function verifyAccount(username, password, authServer) {
 	return new Promise(verifyAccountPacket => {
