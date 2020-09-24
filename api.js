@@ -1,22 +1,21 @@
 const db = require('better-sqlite3')('./hackedAccountList.db');
 const express = require('express')
+const axios = require('axios')
 const fs = require('fs');
-const { resolveSoa } = require('dns');
 const app = express()
-
-let exampleUUID = "069a79f444e94726a5befca90e38aaf5" // Notch
-let exampleToken = "abcde-fghij@alt.com"
 
 app.get("/api/accountInfo", (req, res) => {
 	if(typeof req.query.uuid == 'undefined') {
-		res.send(`{"error": true, "msg": "No uuid provided, Example URL: ` + req.get('host') + req.originalUrl + `?uuid=` + exampleUUID + `"}`)
+		res.send({"success": false, "msg": "No uuid provided."})
 	} else {
 		let fixedUUID = req.query.uuid.replace(/-/g, '');
 		let sqlResponse = db.prepare(`
 
 		SELECT
 			account_uuid,
-			account_provider
+			account_provider,
+			account_token,
+			account_time_added
 		FROM
 			hacked_account_list
 		WHERE
@@ -24,72 +23,70 @@ app.get("/api/accountInfo", (req, res) => {
 
 		`).get();
 		if(typeof sqlResponse == 'undefined') {
-			res.send(`{"error": false, "hackedAccount": false}`);
+			res.send({"success": true, "hackedAccount": false});
 		} else {
-			res.send(`{"error": false, "hackedAccount": true, "accountProvider": "${sqlResponse.account_provider}"}`);
+			res.send({"success": true, "hackedAccount": true, "accountProvider": sqlResponse.account_provider, "accountToken": sqlResponse.account_token, "accountTimeAdded": sqlResponse.account_time_added});
 		}
 	}
   })
 
 app.get("/api/addAccount", async (req, res) => {
 	if(typeof req.query.token == 'undefined') {
-		res.send(`{"error": true, "msg": "No token provided, Example URL: ` + req.get('host') + req.originalUrl + `?token=` + exampleToken + `"}`)
+		res.send({"success": false, "error": `No token provided.`})
 	} else {
-		const emailDomain = req.query.token.split('@').pop();
-		let accountResponse = [];
-		let accountProvider = "Unknown";
-		if(emailDomain == "alt.com") {
-			await verifyAccount(req.query.token, "password", "http://authserver.thealtening.com").then(verifyAccountPacket => {
-				accountResponse = verifyAccountPacket;
-				accountProvider = "TheAltening";
-			});
-		} else {
-			accountResponse = ["Unknown alt generator service. The supported services are: TheAltening, MCLeaks."];
-		}
+		getUUIDFromToken(req.query.token).then(getUUIDFromTokenPacket => {
+			if(getUUIDFromTokenPacket.success == true) {
+				let sqlResponse = db.prepare(`
+
+				SELECT
+					account_uuid
+				FROM
+					hacked_account_list
+				WHERE
+					account_uuid = '${getUUIDFromTokenPacket.response}';
 		
-		if(accountResponse[0] == null) {
-
-			let fixedUUID = accountResponse[1].selectedProfile.id.replace(/-/g, '');
-
-			let sqlResponse = db.prepare(`
-
-			SELECT
-				account_uuid,
-				account_provider
-			FROM
-				hacked_account_list
-			WHERE
-				account_uuid = '${fixedUUID}';
+				`).get();
+				if(typeof sqlResponse == 'undefined') {
+					db.prepare(`
+					INSERT OR IGNORE INTO hacked_account_list(account_uuid, account_provider, account_token, account_time_added) VALUES('${getUUIDFromTokenPacket.response}', '${getUUIDFromTokenPacket.provider}', '${req.query.token}', '${Math.floor(new Date() / 1000)}')
+					`).run();
+					res.send({"success": true, "response": "Success! Thanks for contributing!", "uuid": getUUIDFromTokenPacket.response, "provider": getUUIDFromTokenPacket.provider})
+				} else {
+					res.send({"success": false, "error": "Thanks, but this account is already in our list."});
+				}
 	
-			`).get();
-			if(typeof sqlResponse == 'undefined') {
+				/*
 				db.prepare(`
 				INSERT OR IGNORE INTO hacked_account_list(account_uuid, account_provider) VALUES('${accountResponse[1].selectedProfile.id}', '${accountProvider}')
 				`).run();
-				res.send(`{"error": false, "msg": "Success! Thanks for contributing!"}`)
+				*/
 			} else {
-				res.send(`{"error": true, "msg": "Thanks, but this account is already in our list."}`);
+				res.send({"success": false, "error": getUUIDFromTokenPacket.error});
 			}
-
-			/*
-			db.prepare(`
-			INSERT OR IGNORE INTO hacked_account_list(account_uuid, account_provider) VALUES('${accountResponse[1].selectedProfile.id}', '${accountProvider}')
-			`).run();
-			*/
-		} else {
-			res.send(`{"error": true, "msg": "${accountResponse[0]}"}`)
-		}
-		
+		});
 	}
+
+
 })
 
 app.get("/api/accountCount", async (req, res) => {
-	let sqlResponse = db.prepare(`
+	let theAlteningSQLResponse = db.prepare(`
 	
-	SELECT Count(*) FROM hacked_account_list
+	SELECT Count(*) FROM hacked_account_list WHERE account_provider = 'TheAltening';
 
 	`).get();
-	res.send(`{"count": ${sqlResponse['Count(*)']}}`);
+	let mcleaksSQLResponse = db.prepare(`
+	
+	SELECT Count(*) FROM hacked_account_list WHERE account_provider = 'MCLeaks';
+
+	`).get();
+
+	let theAlteningAccountCount = theAlteningSQLResponse['Count(*)']
+	let mcleaksAccountCount = mcleaksSQLResponse['Count(*)']
+
+	let totalAccountCount = (theAlteningAccountCount + mcleaksAccountCount)
+
+	res.send({"total": totalAccountCount, "TheAltening": theAlteningAccountCount, "MCLeaks": mcleaksAccountCount});
 })
 
 app.get("/", async (req, res) => {
@@ -98,6 +95,10 @@ app.get("/", async (req, res) => {
 
 app.get("/docs", async (req, res) => {
 	res.send(fs.readFileSync('./pages/docs.html', 'utf8'));
+})
+
+app.get("/sitemap.txt", async (req, res) => {
+	res.send(fs.readFileSync('./pages/sitemap.txt', 'utf8'));
 })
 
 app.use(function(req, res) {
@@ -120,10 +121,96 @@ async function verifyAccount(username, password, authServer) {
 			*/
 			user: username, //Username
 			pass: password //Password
-		}, function(err, data){
-			verifyAccountPacket([err, data]);
+		}, function(error, data){
+			verifyAccountPacket({"success": error == null, "response": data, "error": error}); // If error is not set, success = true (For some reason, the typeof error is an object, but the value of it (while empty) is null.)
 		});
 	})
 }
+
+async function getUUIDFromToken(accountToken) {
+	return new Promise(getUUIDFromTokenPacket => {
+
+
+
+		const emailDomain = accountToken.split('@').pop(); // While .pop() removes the last element from an array, it also returns the removed value, so if the email was 'hello@example.com', then we .split('@'), it would be ['hello', 'example.com'], then we .pop() the last value (which also returns the last value), to get the domain name 'example.com'
+
+		if(emailDomain == "alt.com") {
+			verifyAccount(accountToken, "password", "http://authserver.thealtening.com").then(verifyAccountPacket => {
+
+				if(verifyAccountPacket.success == true) {
+					getUUIDFromTokenPacket({"success": true, "response": verifyAccountPacket.response.selectedProfile.id.replace(/-/g, ''), "provider": "TheAltening"})
+				} else {
+					getUUIDFromTokenPacket({"success": false, "response": verifyAccountPacket.response, "error": verifyAccountPacket.error})
+				}
+			});
+		} else {
+			verifyMCLeaks(accountToken).then(verifyAccountPacket => {
+
+				if(verifyAccountPacket.success == true) { // Verifying that the request itself was successful
+
+					if(verifyAccountPacket.response.success == true) { // Verifying that the response from MCLeaks was successful
+
+						getUUIDFromUsername(verifyAccountPacket.response.result.mcname).then(getUUIDFromUsernamePacket => {
+
+							if(getUUIDFromUsernamePacket.success == true) {
+								getUUIDFromTokenPacket({"success": true, "response": getUUIDFromUsernamePacket.response.id.replace(/-/g, '')})
+							} else {
+								getUUIDFromTokenPacket({"success": false, "error": getUUIDFromUsernamePacket.error})
+							}
+
+						});
+
+					} else {
+						getUUIDFromTokenPacket({"success": false, "error": verifyAccountPacket.response.errorMessage})
+					}
+				} else {
+					getUUIDFromTokenPacket({"success": false, "error": verifyAccountPacket.error})
+				}
+			});
+		}
+
+
+
+	})
+}
+
+async function verifyMCLeaks(accountToken) {
+	return new Promise(verifyAccountPacket => {
+		axios.post('https://auth.mcleaks.net/v1/redeem', {
+			token: accountToken
+		})
+		.then(function (response) {
+			verifyAccountPacket({"success": true, "response": response.data})
+		})
+		.catch(function (error) {
+			verifyAccountPacket({"success": false, "error": error})
+		})
+	})
+}
+
+async function getUUIDFromUsername(username) {
+	return new Promise(getUUIDFromUsernamePacket => {
+		axios.get(`https://api.mojang.com/users/profiles/minecraft/${username}`,)
+		.then(function (response) {
+			getUUIDFromUsernamePacket({"success": true, "response": response.data})
+		})
+		.catch(function (error) {
+			getUUIDFromUsernamePacket({"success": false, "error": error})
+		})
+	})
+}
+
+async function main() {
+	db.prepare(`
+	CREATE TABLE IF NOT EXISTS hacked_account_list (
+		account_uuid TEXT PRIMARY KEY,
+		account_provider TEXT NOT NULL,
+		account_token TEXT NOT NULL,
+		account_time_added INTEGER NOT NULL
+	 );
+	`).run();
+}
+
+main();
 
 app.listen(80);
