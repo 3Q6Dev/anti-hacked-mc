@@ -3,7 +3,7 @@
 # anti-hacked-mc
 A community-power solution to minecraft account generators such as TheAltening and MCLeaks
 
-Currently supports: ``TheAltening``, ``MCLeaks.
+Currently supports: ``TheAltening``, ``MCLeaks``.
 
 Usage: https://anti-hacked-mc.ml/docs
 
