@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 	<head>
 
@@ -5,22 +6,26 @@
 
 	<body>
 		<script>
+
+let exampleUUID = "069a79f444e94726a5befca90e38aaf5"
+let exampleToken = "abcde-fghij@alt.com"
+
 document.write(`
 
 <h1>Anti-Hacked-MC Docs</h1>
 <p>GET ${window.location.hostname}/api/accountInfo?uuid=UUIDHERE</p>
-<p>Example URL: ${window.location.hostname}/api/accountInfo?uuid=069a79f444e94726a5befca90e38aaf5</p>
-<p>Example Non-Hacked-Account  Response: {"error": false, "hackedAccount": false}</p>
-<p>Example Hacked-Account  Response: {"error": false, "hackedAccount": true, "accountProvider": "TheAltening"}</p>
+<p>Example URL: ${window.location.hostname}/api/accountInfo?uuid=${exampleUUID}</p>
+<p>Example Hacked-Account Response: {"success":true,"hackedAccount":true,"accountProvider":"TheAltening","accountToken":"${exampleToken}","accountTimeAdded":1600990203}</p>
+<p>Example Non-Hacked-Account Response: {"success":true,"hackedAccount":false}</p>
 
 </br>
 </br>
 </br>
 
 <p>GET ${window.location.hostname}/api/addAccount?token=TOKENHERE</p>
-<p>Example URL: ${window.location.hostname}/api/addAccount?token=4xtgs-tkp2g@alt.com</p>
-<p>Example Successful Response: {"error": false, "msg": "Success! Thanks for contributing!"}</p>
-<p>Example Error Response: {"error": true, "msg": "Thanks, but this account is already in our list."}</p>
+<p>Example URL: ${window.location.hostname}/api/addAccount?token=${exampleToken}</p>
+<p>Example Successful Response: {"success":true,"response":"Success! Thanks for contributing!","uuid":"${exampleUUID}","provider":"TheAltening"}</p>
+<p>Example Error Response: {"success":false,"error":"Thanks, but this account is already in our list."}</p>
 
 </br>
 </br>
@@ -28,7 +33,7 @@ document.write(`
 
 <p>GET ${window.location.hostname}/api/accountCount</p>
 <p>Example URL: ${window.location.hostname}/api/accountCount</p>
-<p>Example Response: {"count": 100}</p>
+<p>Example Response: {"total":10,"TheAltening":8,"MCLeaks":2}</p>
 
 `);
 		</script>
