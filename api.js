@@ -54,12 +54,7 @@ app.get("/api/addAccount", async (req, res) => {
 				} else {
 					res.send({"success": false, "error": "Thanks, but this account is already in our list."});
 				}
-	
-				/*
-				db.prepare(`
-				INSERT OR IGNORE INTO hacked_account_list(account_uuid, account_provider) VALUES('${accountResponse[1].selectedProfile.id}', '${accountProvider}')
-				`).run();
-				*/
+
 			} else {
 				res.send({"success": false, "error": `${getUUIDFromTokenPacket.error}`});
 			}
@@ -152,7 +147,7 @@ async function getUUIDFromToken(accountToken) {
 						getUUIDFromUsername(verifyAccountPacket.response.result.mcname).then(getUUIDFromUsernamePacket => {
 
 							if(getUUIDFromUsernamePacket.success == true) {
-								getUUIDFromTokenPacket({"success": true, "response": getUUIDFromUsernamePacket.response.id.replace(/-/g, '')})
+								getUUIDFromTokenPacket({"success": true, "response": getUUIDFromUsernamePacket.response.id.replace(/-/g, ''), "provider": "MCLeaks"})
 							} else {
 								getUUIDFromTokenPacket({"success": false, "error": getUUIDFromUsernamePacket.error})
 							}
