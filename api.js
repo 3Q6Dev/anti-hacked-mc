@@ -61,7 +61,7 @@ app.get("/api/addAccount", async (req, res) => {
 				`).run();
 				*/
 			} else {
-				res.send({"success": false, "error": getUUIDFromTokenPacket.error});
+				res.send({"success": false, "error": `${getUUIDFromTokenPacket.error}`});
 			}
 		});
 	}
@@ -122,7 +122,7 @@ async function verifyAccount(username, password, authServer) {
 			user: username, //Username
 			pass: password //Password
 		}, function(error, data){
-			verifyAccountPacket({"success": error == null, "response": data, "error": error}); // If error is not set, success = true (For some reason, the typeof error is an object, but the value of it (while empty) is null.)
+			verifyAccountPacket({"success": error == null, "response": data, "error": `${error}`}); // If error is not set, success = true (For some reason, the typeof error is an object, but the value of it (while empty) is null.)
 		});
 	})
 }
@@ -136,11 +136,10 @@ async function getUUIDFromToken(accountToken) {
 
 		if(emailDomain == "alt.com") {
 			verifyAccount(accountToken, "password", "http://authserver.thealtening.com").then(verifyAccountPacket => {
-
 				if(verifyAccountPacket.success == true) {
 					getUUIDFromTokenPacket({"success": true, "response": verifyAccountPacket.response.selectedProfile.id.replace(/-/g, ''), "provider": "TheAltening"})
 				} else {
-					getUUIDFromTokenPacket({"success": false, "response": verifyAccountPacket.response, "error": verifyAccountPacket.error})
+					getUUIDFromTokenPacket({"success": false, "response": verifyAccountPacket.response, "error": `${verifyAccountPacket.error}`})
 				}
 			});
 		} else {
