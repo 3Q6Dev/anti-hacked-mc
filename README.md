@@ -1,7 +1,7 @@
-#### If you are a web developer, please help us out, and contribute to the design of our website, the cleaner it looks, the more users it will gain.
-
 # anti-hacked-mc
 A community-power solution to minecraft account generators such as TheAltening and MCLeaks
+
+## I highly recommend you host this yourself instead of using our website.
 
 Currently supports: ``TheAltening``, ``MCLeaks``.
 
